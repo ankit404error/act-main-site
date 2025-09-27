@@ -22,7 +22,7 @@ const testimonials = [
 
 const TestimonialsSection = () => (
   <section className="bg-muted py-12 md:py-16">
-    {/* <div className="container mx-auto px-4 max-w-5xl">
+    <div className="container mx-auto px-4 max-w-5xl">
       <h2 className="text-3xl font-bold text-center mb-8 text-primary">
         What Our Clients Say
       </h2>
@@ -50,7 +50,7 @@ const TestimonialsSection = () => (
           </div>
         ))}
       </div>
-    </div> */}
+    </div>
   </section>
 );
 
