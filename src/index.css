@@ -9,7 +9,7 @@
     --foreground: 34 34 34;
   }
   body {
-    @apply font-inter bg-muted text-[17px] leading-relaxed antialiased;
+    @apply font-inter bg-muted text-[17px] leading-relaxed antialiased overflow-x-hidden;
   }
   h1, h2, h3, h4 {
     @apply font-semibold;
