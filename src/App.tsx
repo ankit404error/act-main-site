@@ -11,6 +11,8 @@ import ContactUs from "./pages/ContactUs";
 import Header from "@/components/Header";
 import Services from "./pages/Services";
 import ServiceDetail from "./pages/ServiceDetail";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 import SEOHead from "@/components/SEOHead";
 import ScrollToTop from "@/components/ScrollToTop";
 
@@ -31,6 +33,8 @@ const App = () => (
             <Route path="/about" element={<AboutUs />} />
             <Route path="/services" element={<Services />} />
             <Route path="/services/:serviceId" element={<ServiceDetail />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/contact" element={<ContactUs />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

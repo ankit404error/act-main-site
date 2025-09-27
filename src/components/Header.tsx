@@ -85,6 +85,15 @@ const Header = () => {
               className="font-semibold"
               asChild
             >
+              <Link to="/blog">
+                Blog
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              className="font-semibold"
+              asChild
+            >
               <Link to="/contact">
                 Contact Us
               </Link>

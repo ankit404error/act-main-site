@@ -21,3 +21,9 @@
     background: linear-gradient(90deg, #ad7cf7 10%, #7b2ff2 80%);
   }
 }
+
+@layer utilities {
+  .no-underline {
+    text-decoration: none !important;
+  }
+}
