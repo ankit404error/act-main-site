@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, User, Tag } from 'lucide-react';
+import { Calendar, Clock, User, Tag, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -64,8 +64,48 @@ const Blog = () => {
     });
   };
 
+  const handleDelete = async (slug: string, title: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) {
+      return;
+    }
+    
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/blogs/${slug}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to delete blog post');
+      }
+      
+      // Remove from local state
+      setAllBlogPosts(prev => prev.filter(p => p.slug !== slug));
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete blog post');
+    }
+  };
+
   const BlogCard = ({ post, featured = false }: { post: BlogPost; featured?: boolean }) => (
-    <Card className={`group h-full hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:-translate-y-1 ${featured ? 'ring-2 ring-primary/20' : ''}`}>
+    <Card className={`group h-full hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:-translate-y-1 ${featured ? 'ring-2 ring-primary/20' : ''} relative`}>
+      {/* Admin Delete Button */}
+      {isAdmin && (
+        <Button
+          variant="destructive"
+          size="sm"
+          className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleDelete(post.slug, post.title);
+          }}
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      )}
       <Link to={`/blog/${post.slug}`} className="block h-full no-underline">
         <div className="relative overflow-hidden">
           <img
@@ -155,39 +195,6 @@ const Blog = () => {
           {isAdmin && (
             <div className="mb-12 bg-white border rounded-2xl shadow-sm p-6">
               <h2 className="text-2xl font-bold mb-4">Create New Blog</h2>
-              <div className="flex items-center gap-3 mb-4">
-                <Button type="button" variant="outline" onClick={async () => {
-                  try {
-                    const baseUrl = import.meta.env.VITE_API_URL || '';
-                    const token = localStorage.getItem('ACT_ADMIN_TOKEN');
-                    const mock = getMockBlogPosts();
-                    for (const p of mock) {
-                      await fetch(`${baseUrl}/api/blogs`, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({
-                          title: p.title,
-                          slug: p.slug,
-                          metaDescription: p.metaDescription,
-                          content: p.content,
-                          imageUrl: p.imageUrl,
-                          tags: p.tags,
-                          featured: Boolean((p as any).featured),
-                        })
-                      });
-                    }
-                    // Refresh list after importing
-                    const res = await fetch(`${baseUrl}/api/blogs`);
-                    const data = res.ok ? await res.json() : [];
-                    if (Array.isArray(data) && data.length > 0) setAllBlogPosts(data);
-                  } catch (e) {
-                    alert('Failed to import sample posts');
-                  }
-                }}>Import sample posts</Button>
-              </div>
               <form
                 className="grid grid-cols-1 gap-4"
                 onSubmit={async (e) => {
