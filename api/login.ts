@@ -1,4 +1,4 @@
-import { withCors } from './health';
+import { withCors } from './health.js';
 
 export default function handler(req: any, res: any) {
   withCors(res);

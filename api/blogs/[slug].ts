@@ -1,5 +1,5 @@
-import { isAuthorizedAdmin } from '../_auth';
-import { getClient, getDbName } from '../_db';
+import { isAuthorizedAdmin } from '../_auth.js';
+import { getClient, getDbName } from '../_db.js';
 
 export const withCors = (res: any) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
