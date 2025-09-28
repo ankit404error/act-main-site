@@ -24,8 +24,8 @@ module.exports = async function handler(req, res) {
       if (!blog) return res.status(404).json({ message: 'Not found' });
       return res.status(200).json(blog);
     } catch (e) {
-      console.error('API Error:', e);
-      return res.status(500).json({ message: 'Failed to fetch blog' });
+      console.error('GET blog error:', e);
+      return res.status(500).json({ message: 'Failed to fetch blog: ' + e.message });
     }
   }
 
@@ -66,7 +66,7 @@ module.exports = async function handler(req, res) {
       console.log('Blog deleted successfully!');
       return res.status(200).json({ message: 'Blog post deleted successfully' });
     } catch (e) {
-      console.error('Delete API Error:', e);
+      console.error('DELETE blog error:', e);
       return res.status(500).json({ message: 'Failed to delete blog: ' + e.message });
     }
   }

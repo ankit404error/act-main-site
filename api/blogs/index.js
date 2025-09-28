@@ -26,24 +26,35 @@ module.exports = async function handler(req, res) {
   }
 
   const { MONGODB_URI, DB_NAME = 'act_site' } = process.env;
-  if (!MONGODB_URI) return res.status(200).json([]);
-
-  const client = await getClient(MONGODB_URI);
-  const col = client.db(DB_NAME).collection('blogs');
-
+  
   if (req.method === 'GET') {
     try {
+      if (!MONGODB_URI) {
+        return res.status(200).json([]);
+      }
+      
+      const client = await getClient(MONGODB_URI);
+      const col = client.db(DB_NAME).collection('blogs');
       const blogs = await col.find({}, { projection: { _id: 0 } }).sort({ publishedAt: -1 }).toArray();
       return res.status(200).json(blogs);
     } catch (e) {
-      return res.status(500).json({ message: 'Failed to fetch blogs' });
+      console.error('GET blogs error:', e);
+      return res.status(500).json({ message: 'Failed to fetch blogs: ' + e.message });
     }
   }
 
   if (req.method === 'POST') {
     const unauthorized = requireAdmin(req, res);
     if (unauthorized) return; // response was already sent
+    
+    if (!MONGODB_URI) {
+      return res.status(500).json({ message: 'Database not configured' });
+    }
+    
     try {
+      const client = await getClient(MONGODB_URI);
+      const col = client.db(DB_NAME).collection('blogs');
+      
       const { title, slug, metaDescription, content, imageUrl, tags = [], featured = false } = await readJson(req);
       if (!title || !slug || !metaDescription || !content) return res.status(400).json({ message: 'Missing required fields' });
 
@@ -68,7 +79,8 @@ module.exports = async function handler(req, res) {
       await col.insertOne(doc);
       return res.status(201).json(doc);
     } catch (e) {
-      return res.status(500).json({ message: 'Failed to create blog' });
+      console.error('POST blogs error:', e);
+      return res.status(500).json({ message: 'Failed to create blog: ' + e.message });
     }
   }
 

@@ -24,6 +24,7 @@ module.exports = async function handler(req, res) {
     }
     return res.status(401).json({ message: 'Invalid credentials' });
   } catch (e) {
-    return res.status(400).json({ message: 'Bad request' });
+    console.error('Login error:', e);
+    return res.status(400).json({ message: 'Bad request: ' + e.message });
   }
 };
