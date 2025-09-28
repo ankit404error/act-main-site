@@ -1,4 +1,4 @@
-import { getClient } from '../_db.js';
+const { getClient } = require('../_db.js');
 
 function requireAdmin(req, res) {
   const auth = req.headers['authorization'] || '';
@@ -13,7 +13,7 @@ async function readJson(req) {
   return JSON.parse(raw);
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Add CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');

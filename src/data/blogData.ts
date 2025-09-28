@@ -581,6 +581,82 @@ Thank you for reading this test post!
     featured: false
   },
   {
+    id: 'test1',
+    slug: 'test1',
+    title: 'Test1 Blog Post - Advanced Testing',
+    metaDescription: 'This is an advanced test blog post to test the delete functionality and routing system.',
+    content: `
+# Test1 Blog Post - Advanced Testing
+
+This is an advanced test blog post to test the delete functionality and routing system.
+
+## Purpose
+
+This blog post is created specifically to test:
+
+- **Delete functionality** - Testing admin delete capabilities
+- **Dynamic routing** - Ensuring proper URL handling
+- **API integration** - Testing backend connectivity
+- **Error handling** - Validating error scenarios
+
+## Technical Details
+
+### Features Being Tested:
+
+1. **Admin Authentication**
+   - Token validation
+   - Unauthorized access handling
+   
+2. **API Endpoints**
+   - GET /api/blogs/test1
+   - DELETE /api/blogs/test1
+   
+3. **Frontend Integration**
+   - Delete button functionality
+   - Error handling and user feedback
+   - State management
+
+### Test Scenarios:
+
+\`\`\`javascript
+// Example delete function
+const deletePost = async (slug) => {
+  const response = await fetch(\`/api/blogs/\${slug}\`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': \`Bearer \${token}\`
+    }
+  });
+  return response.json();
+};
+\`\`\`
+
+## Expected Behavior
+
+When testing this post:
+
+1. **View**: Should display properly at /blog/test1
+2. **Delete**: Admin should be able to delete this post
+3. **Routing**: URL should not redirect to /blog
+4. **Feedback**: Clear success/error messages
+
+## Conclusion
+
+This test post helps ensure the blog system works correctly with proper delete functionality and routing.
+
+Ready for testing!
+    `,
+    imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1472&q=80',
+    author: {
+      name: 'Test Admin',
+      avatar: '/lovable-uploads/9a295041-b715-4e21-8400-d0ea69a1e49e.png'
+    },
+    publishedAt: '2024-03-21',
+    tags: ['Test', 'Delete Functionality', 'API Testing', 'Debug'],
+    readTime: 4,
+    featured: false
+  },
+  {
     id: '5',
     slug: 'crm-systems-customer-relationship-management',
     title: 'CRM Systems: Mastering Customer Relationship Management',

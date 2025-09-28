@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Add CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -26,4 +26,4 @@ export default async function handler(req, res) {
   } catch (e) {
     return res.status(400).json({ message: 'Bad request' });
   }
-}
+};
