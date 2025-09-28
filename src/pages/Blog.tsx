@@ -1,16 +1,60 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Clock, User, Tag } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import SEOHead from '@/components/SEOHead';
-import { getBlogPosts, getFeaturedBlogPosts } from '@/data/blogData';
 import { BlogPost } from '@/types/blog';
+import { getBlogPosts as getMockBlogPosts } from '@/data/blogData';
 
 const Blog = () => {
-  const allBlogPosts = getBlogPosts();
-  const featuredBlogPosts = getFeaturedBlogPosts();
-  const regularBlogPosts = allBlogPosts.filter(post => !post.featured);
+  const [allBlogPosts, setAllBlogPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Admin form state
+  const [form, setForm] = useState({
+    title: '',
+    slug: '',
+    metaDescription: '',
+    content: '',
+    imageUrl: '',
+    tags: '',
+    featured: false,
+  });
+
+  const token = typeof window !== 'undefined' ? localStorage.getItem('ACT_ADMIN_TOKEN') : null;
+  const isAdmin = Boolean(token);
+
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        const baseUrl = import.meta.env.VITE_API_URL || '';
+        const res = await fetch(`${baseUrl}/api/blogs`);
+        if (!res.ok) throw new Error('Failed to load blogs');
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setAllBlogPosts(data);
+        } else {
+          // Fallback to previous static content when DB is empty
+          setAllBlogPosts(getMockBlogPosts());
+        }
+      } catch (err: any) {
+        // Fallback to previous static content on error
+        setAllBlogPosts(getMockBlogPosts());
+        setError(err.message || 'Failed to load blogs');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBlogs();
+  }, []);
+
+  const featuredBlogPosts = useMemo(() => allBlogPosts.filter(p => p.featured), [allBlogPosts]);
+  const regularBlogPosts = useMemo(() => allBlogPosts.filter(post => !post.featured), [allBlogPosts]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -107,8 +151,111 @@ const Blog = () => {
             </p>
           </div>
 
+          {/* Admin Create Blog */}
+          {isAdmin && (
+            <div className="mb-12 bg-white border rounded-2xl shadow-sm p-6">
+              <h2 className="text-2xl font-bold mb-4">Create New Blog</h2>
+              <div className="flex items-center gap-3 mb-4">
+                <Button type="button" variant="outline" onClick={async () => {
+                  try {
+                    const baseUrl = import.meta.env.VITE_API_URL || '';
+                    const token = localStorage.getItem('ACT_ADMIN_TOKEN');
+                    const mock = getMockBlogPosts();
+                    for (const p of mock) {
+                      await fetch(`${baseUrl}/api/blogs`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                          title: p.title,
+                          slug: p.slug,
+                          metaDescription: p.metaDescription,
+                          content: p.content,
+                          imageUrl: p.imageUrl,
+                          tags: p.tags,
+                          featured: Boolean((p as any).featured),
+                        })
+                      });
+                    }
+                    // Refresh list after importing
+                    const res = await fetch(`${baseUrl}/api/blogs`);
+                    const data = res.ok ? await res.json() : [];
+                    if (Array.isArray(data) && data.length > 0) setAllBlogPosts(data);
+                  } catch (e) {
+                    alert('Failed to import sample posts');
+                  }
+                }}>Import sample posts</Button>
+              </div>
+              <form
+                className="grid grid-cols-1 gap-4"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  try {
+                    if (!form.title || !form.slug || !form.metaDescription || !form.content) {
+                      alert('Please fill Title, Slug, Short description, and Content.');
+                      return;
+                    }
+                    const baseUrl = import.meta.env.VITE_API_URL || '';
+                    const res = await fetch(`${baseUrl}/api/blogs`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify({
+                        title: form.title,
+                        slug: form.slug,
+                        metaDescription: form.metaDescription,
+                        content: form.content,
+                        imageUrl: form.imageUrl,
+                        tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+                        featured: form.featured,
+                      })
+                    });
+                    if (!res.ok) {
+                      let msg = 'Failed to create blog';
+                      try {
+                        const errJson = await res.json();
+                        if (errJson?.message) msg = errJson.message;
+                      } catch {}
+                      if (res.status === 409) msg = 'A blog with this slug already exists. Please choose a different slug.';
+                      throw new Error(msg);
+                    }
+                    // refresh list
+                    const data = await res.json();
+                    setAllBlogPosts((prev) => [data, ...prev]);
+                    setForm({ title: '', slug: '', metaDescription: '', content: '', imageUrl: '', tags: '', featured: false });
+                  } catch (err: any) {
+                    alert(err.message || 'Failed to create blog');
+                  }
+                }}
+              >
+                <Input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+                <Input placeholder="Slug (unique)" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required />
+                <Input placeholder="Image URL" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} />
+                <Input placeholder="Tags (comma separated)" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
+                <Textarea placeholder="Short description" value={form.metaDescription} onChange={(e) => setForm({ ...form, metaDescription: e.target.value })} />
+                <Textarea placeholder="Content (Markdown supported)" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} className="min-h-40" />
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} /> Featured</label>
+                <div>
+                  <Button type="submit" className="bg-blue-600 text-white">Publish</Button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Loading/Error */}
+          {loading && (
+            <div className="text-center py-16">Loading...</div>
+          )}
+          {error && !loading && (
+            <div className="text-center py-16 text-red-600">{error}</div>
+          )}
+
           {/* Featured Posts Section */}
-          {featuredBlogPosts.length > 0 && (
+          {!loading && featuredBlogPosts.length > 0 && (
             <div className="mb-20">
               <div className="text-center mb-12">
                 <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">Featured Articles</h2>

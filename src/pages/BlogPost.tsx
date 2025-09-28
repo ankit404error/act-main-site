@@ -10,15 +10,46 @@ import ReactMarkdown from 'react-markdown';
 
 const BlogPost = () => {
   const { slug } = useParams<{ slug: string }>();
-  
+  const [post, setPost] = React.useState<any>(null);
+  const [allPosts, setAllPosts] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
   if (!slug) {
     return <Navigate to="/blog" replace />;
   }
 
-  const post = getBlogPostBySlug(slug);
-  const allPosts = getBlogPosts();
-  
-  if (!post) {
+  React.useEffect(() => {
+    const load = async () => {
+      try {
+        const baseUrl = import.meta.env.VITE_API_URL || '';
+        const [oneRes, allRes] = await Promise.all([
+          fetch(`${baseUrl}/api/blogs/${slug}`),
+          fetch(`${baseUrl}/api/blogs`),
+        ]);
+        let one: any = null;
+        if (oneRes.ok) {
+          one = await oneRes.json();
+        } else {
+          // Fallback to static content for the post
+          one = getBlogPostBySlug(slug!);
+          if (!one) throw new Error('Not found');
+        }
+        const all = allRes.ok ? await allRes.json() : getBlogPosts();
+        setPost(one);
+        setAllPosts(Array.isArray(all) && all.length > 0 ? all : getBlogPosts());
+      } catch (e) {
+        // Fallback to static content
+        const fallback = getBlogPostBySlug(slug!);
+        setPost(fallback || null);
+        setAllPosts(getBlogPosts());
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [slug]);
+
+  if (!loading && !post) {
     return <Navigate to="/blog" replace />;
   }
 
@@ -33,8 +64,8 @@ const BlogPost = () => {
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: post.title,
-        text: post.metaDescription,
+        title: post?.title || document.title,
+        text: post?.metaDescription || '',
         url: window.location.href,
       });
     } else {
@@ -45,30 +76,30 @@ const BlogPost = () => {
   };
 
   // Get related posts (same tags, excluding current post)
-  const relatedPosts = allPosts
-    .filter(p => p.id !== post.id)
-    .filter(p => p.tags.some(tag => post.tags.includes(tag)))
+  const relatedPosts = (allPosts || [])
+    .filter((p) => p.slug !== (post?.slug))
+    .filter((p) => p.tags?.some((tag: string) => post?.tags?.includes(tag)))
     .slice(0, 3);
 
   return (
     <>
       <SEOHead
-        title={post.title}
-        description={post.metaDescription}
-        keywords={post.tags.join(', ')}
+        title={post?.title || ''}
+        description={post?.metaDescription || ''}
+        keywords={(post?.tags || []).join(', ')}
         canonicalUrl={window.location.href}
-        ogTitle={post.title}
-        ogDescription={post.metaDescription}
-        ogImage={post.imageUrl}
+        ogTitle={post?.title || ''}
+        ogDescription={post?.metaDescription || ''}
+        ogImage={post?.imageUrl || ''}
         structuredData={{
           "@context": "https://schema.org",
           "@type": "BlogPosting",
-          "headline": post.title,
-          "description": post.metaDescription,
-          "image": post.imageUrl,
+          "headline": post?.title || '',
+          "description": post?.metaDescription || '',
+          "image": post?.imageUrl || '',
           "author": {
             "@type": "Person",
-            "name": post.author.name
+            "name": post?.author?.name || ''
           },
           "publisher": {
             "@type": "Organization",
@@ -78,8 +109,8 @@ const BlogPost = () => {
               "url": window.location.origin + "/lovable-uploads/9a295041-b715-4e21-8400-d0ea69a1e49e.png"
             }
           },
-          "datePublished": post.publishedAt,
-          "dateModified": post.updatedAt || post.publishedAt,
+          "datePublished": post?.publishedAt || '',
+          "dateModified": post?.updatedAt || post?.publishedAt || '',
           "mainEntityOfPage": {
             "@type": "WebPage",
             "@id": window.location.href
@@ -105,7 +136,7 @@ const BlogPost = () => {
             <div className="mb-8">
               {/* Tags */}
               <div className="flex flex-wrap gap-2 mb-6">
-                {post.tags.map((tag, index) => (
+                {(post?.tags || []).map((tag: string, index: number) => (
                   <Badge key={index} variant="secondary" className="text-sm px-3 py-1 bg-primary text-white border-primary">
                     <Tag className="w-3 h-3 mr-1" />
                     {tag}
@@ -115,22 +146,22 @@ const BlogPost = () => {
 
               {/* Title */}
               <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-                {post.title}
+                {post?.title}
               </h1>
 
               {/* Meta Information */}
               <div className="flex flex-wrap items-center gap-6 text-muted-foreground mb-8">
                 <div className="flex items-center gap-2">
                   <User className="w-5 h-5" />
-                  <span>{post.author.name}</span>
+                  <span>{post?.author?.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-5 h-5" />
-                  <span>{formatDate(post.publishedAt)}</span>
+                  <span>{post?.publishedAt ? formatDate(post.publishedAt) : ''}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-5 h-5" />
-                  <span>{post.readTime} min read</span>
+                  <span>{post?.readTime} min read</span>
                 </div>
                 <Button
                   variant="outline"
@@ -146,8 +177,8 @@ const BlogPost = () => {
               {/* Featured Image */}
               <div className="mb-8">
                 <img
-                  src={post.imageUrl}
-                  alt={post.title}
+                  src={post?.imageUrl}
+                  alt={post?.title || ''}
                   className="w-full h-64 md:h-96 object-cover rounded-lg shadow-lg"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -205,7 +236,7 @@ const BlogPost = () => {
                   ),
                 }}
               >
-                {post.content}
+                {post?.content || ''}
               </ReactMarkdown>
             </div>
 

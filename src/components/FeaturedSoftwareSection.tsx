@@ -49,6 +49,10 @@ const FeaturedSoftwareSection = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   const handleServiceClick = (service: typeof softwareList[0]) => {
+    if (service.name === "Restaurant Management System") {
+      window.location.href = "https://dq-redirect.vercel.app/";
+      return;
+    }
     setSelectedService(service);
     setIsPopupOpen(true);
   };

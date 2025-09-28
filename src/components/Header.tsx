@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import {
@@ -19,26 +19,42 @@ const Header = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("");
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    const token = localStorage.getItem("ACT_ADMIN_TOKEN");
+    if (token) {
+      setIsLoggedIn(true);
+      setUserName("admin");
+    }
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
-    const name = email.split('@')[0]; // Simple name extraction from email
-    setUserName(name);
-    setIsLoggedIn(true);
-    setIsAuthModalOpen(false);
-  };
+    const password = formData.get('password') as string;
 
-  const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get('name') as string;
-    setUserName(name);
-    setIsLoggedIn(true);
-    setIsAuthModalOpen(false);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      if (!res.ok) {
+        throw new Error('Invalid credentials');
+      }
+      const data = await res.json();
+      localStorage.setItem('ACT_ADMIN_TOKEN', data.token);
+      setUserName('admin');
+      setIsLoggedIn(true);
+      setIsAuthModalOpen(false);
+    } catch (err) {
+      alert('Login failed. Please check your credentials.');
+    }
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('ACT_ADMIN_TOKEN');
     setIsLoggedIn(false);
     setUserName("");
   };
@@ -104,7 +120,7 @@ const Header = () => {
             {isLoggedIn ? (
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4" />
-                <span className="text-sm font-medium">Welcome, {userName}</span>
+                <span className="text-sm font-medium">admin</span>
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -176,9 +192,8 @@ const Header = () => {
             <DialogTitle className="text-gray-900">Welcome to Avyukt Core Technologies</DialogTitle>
           </DialogHeader>
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-gray-100">
+            <TabsList className="grid w-full grid-cols-1 bg-gray-100">
               <TabsTrigger value="login" className="data-[state=active]:bg-white data-[state=active]:text-gray-900">Login</TabsTrigger>
-              <TabsTrigger value="signup" className="data-[state=active]:bg-white data-[state=active]:text-gray-900">Sign Up</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login" className="space-y-4">
@@ -208,61 +223,6 @@ const Header = () => {
                 <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                   Login
                 </Button>
-              </form>
-            </TabsContent>
-            
-            <TabsContent value="signup" className="space-y-4">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name" className="text-gray-700 font-medium">Full Name</Label>
-                  <Input 
-                    id="signup-name" 
-                    name="name"
-                    type="text" 
-                    placeholder="Enter your full name" 
-                    required 
-                    className="bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email" className="text-gray-700 font-medium">Email</Label>
-                  <Input 
-                    id="signup-email" 
-                    name="email"
-                    type="email" 
-                    placeholder="your.email@example.com" 
-                    required 
-                    className="bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password" className="text-gray-700 font-medium">Password</Label>
-                  <Input 
-                    id="signup-password" 
-                    name="password"
-                    type="password" 
-                    placeholder="Create a password"
-                    required 
-                    className="bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-confirm-password" className="text-gray-700 font-medium">Confirm Password</Label>
-                  <Input 
-                    id="signup-confirm-password" 
-                    name="confirmPassword"
-                    type="password" 
-                    placeholder="Confirm your password"
-                    required 
-                    className="bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                  Sign Up
-                </Button>
-                <p className="text-sm text-gray-600 text-center">
-                  Note: Sign up is optional. You can access all services without an account.
-                </p>
               </form>
             </TabsContent>
           </Tabs>
