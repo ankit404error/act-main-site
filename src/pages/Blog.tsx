@@ -69,22 +69,62 @@ const Blog = () => {
       return;
     }
     
+    console.log('Attempting to delete blog:', slug);
+    console.log('Token:', token ? 'Present' : 'Missing');
+    
     try {
       const baseUrl = import.meta.env.VITE_API_URL || '';
+      console.log('API URL:', baseUrl);
+      
       const res = await fetch(`${baseUrl}/api/blogs/${slug}`, {
         method: 'DELETE',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         }
       });
       
-      if (!res.ok) {
-        throw new Error('Failed to delete blog post');
+      console.log('Response status:', res.status);
+      console.log('Response headers:', Object.fromEntries(res.headers.entries()));
+      
+      let responseText;
+      try {
+        responseText = await res.text();
+        console.log('Response body:', responseText);
+      } catch (e) {
+        console.log('Failed to read response body:', e);
       }
       
+      if (!res.ok) {
+        let errorMessage = 'Failed to delete blog post';
+        try {
+          if (responseText) {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.message || errorMessage;
+          }
+        } catch (e) {
+          console.log('Failed to parse error response:', e);
+          errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+        }
+        
+        // If it's a 404 or database error, it might be a static blog post
+        // In that case, we can still remove it from the UI
+        if (res.status === 404 || errorMessage.includes('Database not configured') || errorMessage.includes('Blog post not found')) {
+          console.log('Treating as static blog post deletion');
+          setAllBlogPosts(prev => prev.filter(p => p.slug !== slug));
+          alert('Blog post removed from display (was static content)');
+          return;
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      console.log('Blog deleted successfully!');
       // Remove from local state
       setAllBlogPosts(prev => prev.filter(p => p.slug !== slug));
+      alert('Blog post deleted successfully!');
     } catch (err: any) {
+      console.error('Delete error:', err);
       alert(err.message || 'Failed to delete blog post');
     }
   };

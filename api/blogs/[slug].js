@@ -30,26 +30,44 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'DELETE') {
+    console.log('DELETE request received for slug:', req.query.slug);
+    
     // Delete blog post (admin only)
     const auth = req.headers['authorization'] || '';
+    console.log('Authorization header:', auth);
+    
     const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+    console.log('Extracted token:', token ? 'Present' : 'Missing');
+    
     if (token !== 'admin-token') {
-      return res.status(401).json({ message: 'Unauthorized' });
+      console.log('Unauthorized delete attempt');
+      return res.status(401).json({ message: 'Unauthorized - Invalid or missing admin token' });
+    }
+
+    if (!MONGODB_URI) {
+      console.log('No MongoDB URI configured, cannot delete from database');
+      return res.status(500).json({ message: 'Database not configured' });
     }
 
     try {
+      console.log('Attempting to connect to MongoDB...');
       const client = await getClient(MONGODB_URI);
       const col = client.db(DB_NAME).collection('blogs');
+      
+      console.log('Attempting to delete blog with slug:', req.query.slug);
       const result = await col.deleteOne({ slug: req.query.slug });
+      console.log('Delete result:', result);
       
       if (result.deletedCount === 0) {
+        console.log('No blog found with slug:', req.query.slug);
         return res.status(404).json({ message: 'Blog post not found' });
       }
       
+      console.log('Blog deleted successfully!');
       return res.status(200).json({ message: 'Blog post deleted successfully' });
     } catch (e) {
-      console.error('API Error:', e);
-      return res.status(500).json({ message: 'Failed to delete blog' });
+      console.error('Delete API Error:', e);
+      return res.status(500).json({ message: 'Failed to delete blog: ' + e.message });
     }
   }
 
