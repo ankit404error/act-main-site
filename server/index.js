@@ -115,6 +115,56 @@ app.post('/api/blogs', requireAdmin, async (req, res) => {
   }
 });
 
+// Update blog by slug
+app.put('/api/blogs/:slug', requireAdmin, async (req, res) => {
+  try {
+    const { title, metaDescription, content, imageUrl, tags, featured } = req.body || {};
+    const client = await getClient();
+    const col = client.db(DB_NAME).collection('blogs');
+
+    const update = { $set: { updatedAt: new Date().toISOString() } };
+    if (typeof title === 'string' && title.trim()) update.$set.title = title;
+    if (typeof metaDescription === 'string') update.$set.metaDescription = metaDescription;
+    if (typeof content === 'string' && content.trim()) {
+      update.$set.content = content;
+      // Recompute readTime if content changed
+      const words = String(content).split(/\s+/).filter(Boolean);
+      update.$set.readTime = Math.max(1, Math.ceil(words.length / 200));
+    }
+    if (typeof imageUrl === 'string') update.$set.imageUrl = imageUrl;
+    if (Array.isArray(tags)) update.$set.tags = tags;
+    if (typeof featured !== 'undefined') update.$set.featured = Boolean(featured);
+
+    const result = await col.findOneAndUpdate(
+      { slug: req.params.slug },
+      update,
+      { returnDocument: 'after', projection: { _id: 0 } }
+    );
+
+    if (!result.value) return res.status(404).json({ message: 'Blog post not found' });
+    return res.json(result.value);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: 'Failed to update blog' });
+  }
+});
+
+// Delete blog by slug
+app.delete('/api/blogs/:slug', requireAdmin, async (req, res) => {
+  try {
+    const client = await getClient();
+    const col = client.db(DB_NAME).collection('blogs');
+    const result = await col.deleteOne({ slug: req.params.slug });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Blog post not found' });
+    }
+    return res.status(204).send();
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: 'Failed to delete blog' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`API server running on http://localhost:${PORT}`);
 });

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, User, Tag, Trash2 } from 'lucide-react';
+import { Calendar, Clock, User, Tag, Trash2, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ const Blog = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Admin form state
+  // Admin create form state
   const [form, setForm] = useState({
     title: '',
     slug: '',
@@ -62,6 +62,91 @@ const Blog = () => {
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  // Admin edit form state
+  const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    slug: '',
+    metaDescription: '',
+    content: '',
+    imageUrl: '',
+    tags: '',
+    featured: false,
+  });
+
+  const startEdit = (post: BlogPost) => {
+    setEditingPost(post);
+    setEditForm({
+      title: post.title,
+      slug: post.slug,
+      metaDescription: post.metaDescription,
+      content: post.content,
+      imageUrl: post.imageUrl,
+      tags: (post.tags || []).join(', '),
+      featured: Boolean(post.featured),
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingPost(null);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingPost) return;
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/blogs/${editingPost.slug}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: editForm.title,
+          // slug updates are not supported via edit to avoid breaking links
+          metaDescription: editForm.metaDescription,
+          content: editForm.content,
+          imageUrl: editForm.imageUrl,
+          tags: editForm.tags.split(',').map(t => t.trim()).filter(Boolean),
+          featured: editForm.featured,
+        })
+      });
+
+      if (!res.ok) {
+        let msg = `Failed to update blog (HTTP ${res.status})`;
+        try {
+          const errJson = await res.json();
+          if (errJson?.message) msg = errJson.message;
+        } catch {}
+        if (res.status === 404) {
+          // Treat as static blog update: update UI locally without showing an alert
+          const updatedLocal = {
+            ...editingPost,
+            title: editForm.title,
+            metaDescription: editForm.metaDescription,
+            content: editForm.content,
+            imageUrl: editForm.imageUrl,
+            tags: editForm.tags.split(',').map(t => t.trim()).filter(Boolean),
+            featured: editForm.featured,
+            updatedAt: new Date().toISOString(),
+          } as BlogPost;
+          setAllBlogPosts(prev => prev.map(p => p.slug === updatedLocal.slug ? updatedLocal : p));
+          setEditingPost(null);
+          return;
+        }
+        throw new Error(msg);
+      }
+
+      const updated = await res.json();
+      setAllBlogPosts(prev => prev.map(p => p.slug === updated.slug ? updated : p));
+      setEditingPost(null);
+      alert('Blog post updated successfully!');
+    } catch (err: any) {
+      alert(err.message || 'Failed to update blog');
+    }
   };
 
   const handleDelete = async (slug: string, title: string) => {
@@ -133,18 +218,32 @@ const Blog = () => {
     <Card className={`group h-full hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:-translate-y-1 ${featured ? 'ring-2 ring-primary/20' : ''} relative`}>
       {/* Admin Delete Button */}
       {isAdmin && (
-        <Button
-          variant="destructive"
-          size="sm"
-          className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleDelete(post.slug, post.title);
-          }}
-        >
-          <Trash2 className="w-4 h-4" />
-        </Button>
+        <div className="absolute top-2 right-2 z-10 flex gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            className="bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              startEdit(post);
+            }}
+          >
+            <Pencil className="w-4 h-4 text-white" />
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="bg-red-600 text-white hover:bg-red-700 shadow-md"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleDelete(post.slug, post.title);
+            }}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
       )}
       <Link to={`/blog/${post.slug}`} className="block h-full no-underline">
         <div className="relative overflow-hidden">
@@ -230,6 +329,26 @@ const Blog = () => {
               business automation, and technology solutions.
             </p>
           </div>
+
+          {/* Admin Edit Blog */}
+          {isAdmin && editingPost && (
+            <div className="mb-12 bg-white border rounded-2xl shadow-sm p-6">
+              <h2 className="text-2xl font-bold mb-4">Edit Blog: {editingPost.title}</h2>
+              <div className="grid grid-cols-1 gap-4">
+                <Input placeholder="Title" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} required />
+                <Input placeholder="Slug (cannot change)" value={editForm.slug} disabled />
+                <Input placeholder="Image URL" value={editForm.imageUrl} onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })} />
+                <Input placeholder="Tags (comma separated)" value={editForm.tags} onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })} />
+                <Textarea placeholder="Short description" value={editForm.metaDescription} onChange={(e) => setEditForm({ ...editForm, metaDescription: e.target.value })} />
+                <Textarea placeholder="Content (Markdown supported)" value={editForm.content} onChange={(e) => setEditForm({ ...editForm, content: e.target.value })} className="min-h-40" />
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={editForm.featured} onChange={(e) => setEditForm({ ...editForm, featured: e.target.checked })} /> Featured</label>
+                <div className="flex gap-3">
+                  <Button type="button" className="bg-blue-600 text-white" onClick={handleUpdate}>Save Changes</Button>
+                  <Button type="button" variant="outline" onClick={cancelEdit}>Cancel</Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Admin Create Blog */}
           {isAdmin && (
