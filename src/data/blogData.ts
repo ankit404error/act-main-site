@@ -523,6 +523,64 @@ Ready to transform your retail operations? Contact us today to discuss your e-co
     readTime: 15
   },
   {
+    id: 'test',
+    slug: 'test',
+    title: 'Test Blog Post',
+    metaDescription: 'This is a test blog post to demonstrate the blog functionality and routing.',
+    content: `
+# Test Blog Post
+
+This is a test blog post to demonstrate the blog functionality and routing system.
+
+## Introduction
+
+Welcome to our test blog post! This post serves as an example of how our blog system works and displays content.
+
+## Key Features
+
+Our blog system includes:
+
+- **Dynamic routing** - Each blog post has its own URL
+- **SEO optimization** - Proper meta tags and structured data
+- **Responsive design** - Works great on all devices
+- **Rich content** - Supports markdown formatting
+
+## Content Examples
+
+### Code Example
+
+\`\`\`javascript
+const greeting = "Hello, World!";
+console.log(greeting);
+\`\`\`
+
+### List Example
+
+1. First item
+2. Second item
+3. Third item
+
+### Quote Example
+
+> "This is a sample quote to demonstrate blockquote styling."
+
+## Conclusion
+
+This test post demonstrates that our blog system is working correctly with proper routing, styling, and content rendering.
+
+Thank you for reading this test post!
+    `,
+    imageUrl: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1472&q=80',
+    author: {
+      name: 'Test Author',
+      avatar: '/lovable-uploads/9a295041-b715-4e21-8400-d0ea69a1e49e.png'
+    },
+    publishedAt: '2024-03-20',
+    tags: ['Test', 'Demo', 'Blog System'],
+    readTime: 3,
+    featured: false
+  },
+  {
     id: '5',
     slug: 'crm-systems-customer-relationship-management',
     title: 'CRM Systems: Mastering Customer Relationship Management',
